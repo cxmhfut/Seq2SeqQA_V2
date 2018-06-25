@@ -6,6 +6,7 @@ import os
 import jieba
 import pickle
 import random
+import string
 
 padToken, goToken, eosToken, unknownToken = 0, 1, 2, 3
 
@@ -31,7 +32,7 @@ def build_dataset(word_id_filename, train_samples_filename):
     vocab_size = len(dataset['word2id'])
     trainset_size = len(dataset['trainingSamples'])
     filename = "data/dataset-{}-vocabSize{}.pkl".format(trainset_size, vocab_size)
-    with open(filename,'wb') as handle:
+    with open(filename, 'wb') as handle:
         pickle.dump(dataset, handle)
 
 
@@ -127,6 +128,44 @@ def sentence2enco(sentence, word2id):
     return batch
 
 
+def sequence2Str(sequence, id2word, clean=False, reverse=False):
+    if not sequence:
+        return ''
+    if not clean:
+        return ''.join([id2word[idx] for idx in sequence])
+    sentence = []
+    for idx in sequence:
+        if idx == eosToken:
+            break
+        elif idx != goToken and idx != padToken:
+            sentence.append(id2word[idx])
+    if reverse:
+        sentence.reverse()
+
+    return detokenize(sentence)
+
+
+def detokenize(tokens):
+    """Slightly cleaner version of joining with spaces.
+    Args:
+        tokens (list<string>): the sentence to print
+    Return:
+        str: the sentence
+    """
+    return ''.join([
+        ' ' + t if not t.startswith('\'') and
+                   t not in string.punctuation
+        else t for t in tokens]).strip().capitalize()
+
+
 if __name__ == '__main__':
     from FLAGS import flags
-    build_dataset(flags.word_id_filename,flags.train_samples_filename)
+
+    # build_dataset(flags.word_id_filename,flags.train_samples_filename)
+    word2id, id2word, trainingSamples = loadDataset(flags.dataset_filename)
+    samples = []
+    for i in range(10):
+        sample = trainingSamples[i]
+        print(sequence2Str(sample[0], id2word, clean=True))
+        print(sequence2Str(sample[1], id2word, clean=True))
+        samples.append(sample)
