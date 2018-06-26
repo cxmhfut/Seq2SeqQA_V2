@@ -18,10 +18,70 @@ tf.app.flags.DEFINE_string(
     "the path of dataset: word2id = data['word2id], id2word = data['id2word'], trainingSamples = data['trainingSamples']"
 )
 
+tf.app.flags.DEFINE_string(
+    'padToken',
+    '<pad>',
+    'pad token'
+)
+
+tf.app.flags.DEFINE_string(
+    'goToken',
+    '<go>',
+    'go token'
+)
+
+tf.app.flags.DEFINE_string(
+    'endToken',
+    '<end>',
+    'end token'
+)
+
+tf.app.flags.DEFINE_string(
+    'unkToken',
+    '<unk>',
+    'unknow token'
+)
+
+tf.app.flags.DEFINE_float(
+    'learning_rate',
+    0.0001,
+    'learning rate'
+)
+
+tf.app.flags.DEFINE_float(
+    'max_gradient_norm',
+    5.0,
+    'gradients will be clipped to maximally this norm'
+)
+
 tf.app.flags.DEFINE_integer(
     'rnn_size',
     1024,
     'Number of hidden units in each layer'
+)
+
+tf.app.flags.DEFINE_integer(
+    'batch_size',
+    128,
+    'Batch size'
+)
+
+tf.app.flags.DEFINE_boolean(
+    'beam_search',
+    True,
+    'use beam search'
+)
+
+tf.app.flags.DEFINE_integer(
+    'beam_size',
+    5,
+    'Beam size'
+)
+
+tf.app.flags.DEFINE_string(
+    'mode',
+    'train',
+    'model mode train or interactive'
 )
 
 tf.app.flags.DEFINE_float(
