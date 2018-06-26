@@ -36,4 +36,10 @@ tf.app.flags.DEFINE_integer(
     'Number of layers in each encoder and decoder'
 )
 
+tf.app.flags.DEFINE_integer(
+    'embedding_size',
+    1024,
+    'Embedding matrix shape = (vocab_size, embedding_size)'
+)
+
 flags = tf.app.flags.FLAGS
