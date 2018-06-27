@@ -19,6 +19,16 @@ tf.app.flags.DEFINE_string(
 )
 
 tf.app.flags.DEFINE_string(
+    'model_dir',
+    'model',
+    'Path to save model checkpoints')
+
+tf.app.flags.DEFINE_string(
+    'model_name',
+    'model.ckpt',
+    'File name used for model checkpoints')
+
+tf.app.flags.DEFINE_string(
     'padToken',
     '<pad>',
     'pad token'
@@ -42,16 +52,16 @@ tf.app.flags.DEFINE_string(
     'unknow token'
 )
 
+tf.app.flags.DEFINE_integer(
+    'num_epochs',
+    50,
+    'the number of epochs'
+)
+
 tf.app.flags.DEFINE_float(
     'learning_rate',
     0.0001,
     'learning rate'
-)
-
-tf.app.flags.DEFINE_float(
-    'max_gradient_norm',
-    5.0,
-    'gradients will be clipped to maximally this norm'
 )
 
 tf.app.flags.DEFINE_integer(
@@ -66,22 +76,10 @@ tf.app.flags.DEFINE_integer(
     'Batch size'
 )
 
-tf.app.flags.DEFINE_boolean(
-    'beam_search',
-    True,
-    'use beam search'
-)
-
 tf.app.flags.DEFINE_integer(
     'beam_size',
     5,
     'Beam size'
-)
-
-tf.app.flags.DEFINE_string(
-    'mode',
-    'train',
-    'model mode train or interactive'
 )
 
 tf.app.flags.DEFINE_float(
@@ -100,6 +98,12 @@ tf.app.flags.DEFINE_integer(
     'embedding_size',
     1024,
     'Embedding matrix shape = (vocab_size, embedding_size)'
+)
+
+tf.app.flags.DEFINE_integer(
+    'steps_per_checkpoint',
+    100,
+    'Save model checkpoint every this iteration'
 )
 
 flags = tf.app.flags.FLAGS

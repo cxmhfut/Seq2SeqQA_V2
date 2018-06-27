@@ -2,32 +2,35 @@ import tensorflow as tf
 from data_helpers import loadDataset
 from tensorflow.python.util import nest
 from tensorflow.contrib import seq2seq
+from FLAGS import flags as args
 
 
 class Seq2SeqModel:
-    def __init__(self, flags):
+    def __init__(self, flags, mode='train', beam_search=False, max_gradient_norm=5.0):
         self.flags = flags
         word2id, id2word, trainingSamples = loadDataset(flags.dataset_filename)
 
         self.word2id = word2id
         self.id2word = id2word
+        self.trainingSamples = trainingSamples
         self.vocab_size = len(word2id)
         self.goToken = flags.goToken
         self.endToken = flags.endToken
 
         # hyper parameters
         self.rnn_size = flags.rnn_size  # Number of hidden units in each layer
-        self.batch_size = flags.batch_size
-        self.beam_search = flags.beam_search
+        # self.batch_size = flags.batch_size
+        self.beam_search = beam_search
         self.beam_size = flags.beam_size
-        self.mode = flags.mode
+        self.mode = mode
         self.learning_rate = flags.learning_rate
-        self.max_gradient_norm = flags.max_gradient_norm
+        self.max_gradient_norm = max_gradient_norm
         self.keep_prob_dropout = flags.keep_prob_dropout  # dropout
         self.num_layers = flags.num_layers  # Number of layers in each encoder and decoder
         self.embedding_size = flags.embedding_size  # Embedding matrix size [vocab_size,embedding_size]
 
         # model
+        self.batch_size = None
         self.encoder_inputs = None
         self.encoder_inputs_length = None
         self.decoder_targets = None
@@ -109,7 +112,7 @@ class Seq2SeqModel:
             encoder_inputs_length = self.encoder_inputs_length
             if self.beam_search:
                 # 如果使用beam_search，则需要将encoder的输出进行tile_batch，复制beam_size份
-                print("use beam search decoding..")
+                print("use beam search decoding...")
                 encoder_outputs = seq2seq.tile_batch(encoder_outputs,
                                                      multiplier=self.beam_size)
                 encoder_state = nest.map_structure(lambda s: seq2seq.tile_batch(s, self.beam_size),
@@ -127,7 +130,7 @@ class Seq2SeqModel:
             decoder_cell = seq2seq.AttentionWrapper(cell=decoder_cell,
                                                     attention_mechanism=attention_mechanism,
                                                     attention_layer_size=self.rnn_size,
-                                                    name='Attention Wrapper')
+                                                    name='Attention_Wrapper')
             # 如果使用beam_search则batch_size = self.batch_size * self.beam_size
             batch_size = self.batch_size if not self.beam_search else self.batch_size * self.beam_size
             # 定义decoder阶段的初始状态，直接使用encoder阶段的最后一个隐层状态进行赋值
@@ -140,7 +143,8 @@ class Seq2SeqModel:
                 # 定义decoder阶段的输入，其实就是在decoder的target开始处添加一个<go>，并删除结尾处的<end>，并进行embedding
                 # decoder_inputs_embedded的shape为[batch_size,decoder_targets_length,embedding_size]
                 ending = tf.strided_slice(self.decoder_targets, [0, 0], [self.batch_size, -1], [1, 1])
-                decoder_inputs = tf.concat([tf.fill([self.batch_size, 1], self.word2id[self.goToken]), ending], 1)
+                decoder_inputs = tf.concat(
+                    [tf.fill([self.batch_size, 1], tf.cast(self.word2id[self.goToken], dtype=tf.int32)), ending], 1)
                 decoder_inputs_embedded = tf.nn.embedding_lookup(embedding, decoder_inputs)
                 # 训练阶段，使用TrainingHelper+BasicDecoder的组合，这一般是固定的，当然也可以自己定义Helper类，实现自己的功能
                 training_helper = seq2seq.TrainingHelper(inputs=decoder_inputs_embedded,
@@ -174,7 +178,7 @@ class Seq2SeqModel:
                 clip_gradients, _ = tf.clip_by_global_norm(gradients, self.max_gradient_norm)
                 self.train_op = optimizer.apply_gradients(zip(clip_gradients, trainable_params))
             elif self.mode == 'interactive':
-                start_tokens = tf.ones([self.batch_size,],tf.int32)*self.word2id[self.goToken]
+                start_tokens = tf.ones([self.batch_size, ], tf.int32) * self.word2id[self.goToken]
                 end_token = self.word2id[self.endToken]
                 # decoder阶段根据是否使用beam_search决定不同的组合
                 # 如果使用则直接调用BeamSearchDecoder(里面已经实现了helper类)
@@ -195,8 +199,8 @@ class Seq2SeqModel:
                                                              helper=decoder_helper,
                                                              initial_state=decoder_initial_state,
                                                              output_layer=output_layer)
-                decoder_outputs,_,_ = seq2seq.dynamic_decode(decoder=inference_decoder,
-                                                             maximum_iterations=10)
+                decoder_outputs, _, _ = seq2seq.dynamic_decode(decoder=inference_decoder,
+                                                               maximum_iterations=10)
                 # 调用dynamic_decoder进行编码，decoder_outputs是一个named tuple
                 # 对于不使用beam_search的时候，它里面包含两项(rnn_outputs,sample_id)
                 # rnn_output: [batch_size, decoder_targets_length, vocab_size]
@@ -209,6 +213,23 @@ class Seq2SeqModel:
                 if self.beam_search:
                     self.decoder_predict_decoder = decoder_outputs.predicted_ids
                 else:
-                    self.decoder_predict_decoder = tf.expand_dims(decoder_outputs.sample_id,-1)
+                    self.decoder_predict_decoder = tf.expand_dims(decoder_outputs.sample_id, -1)
         # 4 保存模型
         self.saver = tf.train.Saver(tf.global_variables())
+
+    def train(self, sess, batch):
+        """
+        对于训练阶段，需要执行self.train_op, self.loss, self.summary_op三个op，并传入相应的数据
+        :return:
+        """
+        feed_dict = {self.encoder_inputs: batch.encoder_inputs,
+                     self.encoder_inputs_length: batch.encoder_inputs_length,
+                     self.decoder_targets: batch.decoder_targets,
+                     self.decoder_targets_length: batch.decoder_targets_length,
+                     self.batch_size: len(batch.encoder_inputs)}
+        _, loss, summary = sess.run([self.train_op, self.loss, self.summary_op], feed_dict=feed_dict)
+        return loss, summary
+
+
+if __name__ == '__main__':
+    model = Seq2SeqModel(args,mode='train',beam_search=False)
