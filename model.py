@@ -25,12 +25,12 @@ class Seq2SeqModel:
         self.mode = mode
         self.learning_rate = flags.learning_rate
         self.max_gradient_norm = max_gradient_norm
-        self.keep_prob_dropout = flags.keep_prob_dropout  # dropout
         self.num_layers = flags.num_layers  # Number of layers in each encoder and decoder
         self.embedding_size = flags.embedding_size  # Embedding matrix size [vocab_size,embedding_size]
 
         # model
         self.batch_size = None
+        self.keep_prob_dropout = None
         self.encoder_inputs = None
         self.encoder_inputs_length = None
         self.decoder_targets = None
@@ -76,6 +76,7 @@ class Seq2SeqModel:
         self.encoder_inputs_length = tf.placeholder(tf.int32, [None], name='encoder_inputs_length')
 
         self.batch_size = tf.placeholder(tf.int32, [], name='batch_size')
+        self.keep_prob_dropout = tf.placeholder(tf.float32, name='keep_prob_dropout')
 
         self.decoder_targets = tf.placeholder(tf.int32, [None, None], name='decoder_targets')
         self.decoder_targets_length = tf.placeholder(tf.int32, [None], name='decoder_targets_length')
@@ -177,7 +178,7 @@ class Seq2SeqModel:
                 gradients = tf.gradients(self.loss, trainable_params)
                 clip_gradients, _ = tf.clip_by_global_norm(gradients, self.max_gradient_norm)
                 self.train_op = optimizer.apply_gradients(zip(clip_gradients, trainable_params))
-            elif self.mode == 'interactive':
+            elif self.mode == 'predict':
                 start_tokens = tf.ones([self.batch_size, ], tf.int32) * self.word2id[self.goToken]
                 end_token = self.word2id[self.endToken]
                 # decoder阶段根据是否使用beam_search决定不同的组合
@@ -226,10 +227,41 @@ class Seq2SeqModel:
                      self.encoder_inputs_length: batch.encoder_inputs_length,
                      self.decoder_targets: batch.decoder_targets,
                      self.decoder_targets_length: batch.decoder_targets_length,
+                     self.keep_prob_dropout: 0.8,
                      self.batch_size: len(batch.encoder_inputs)}
         _, loss, summary = sess.run([self.train_op, self.loss, self.summary_op], feed_dict=feed_dict)
         return loss, summary
 
+    def eval(self, sess, batch):
+        """
+        对于eval阶段，不需要反向传播，所以只执行self.loss, self.summary_op两个op，并传入相应的数据
+        :param sess:
+        :param batch:
+        :return:
+        """
+        feed_dict = {self.encoder_inputs: batch.encoder_inputs,
+                     self.encoder_inputs_length: batch.encoder_inputs_length,
+                     self.decoder_targets: batch.decoder_targets,
+                     self.decoder_targets_length: batch.decoder_targets_length,
+                     self.keep_prob_dropout: 1.0,
+                     self.batch_size: len(batch.encoder_inputs)}
+        loss, summary = sess.run([self.loss, self.summary_op], feed_dict=feed_dict)
+        return loss, summary
+
+    def infer(self, sess, batch):
+        """
+        infer阶段只需要运行最后的结果，不需要计算loss，所以feed_dict只需要传入encoder_inputs相应的数据即可
+        :param sess:
+        :param batch:
+        :return:
+        """
+        feed_dict = {self.encoder_inputs: batch.encoder_inputs,
+                     self.encoder_inputs_length: batch.encoder_inputs_length,
+                     self.keep_prob_dropout:1.0,
+                     self.batch_size: len(batch.encoder_inputs)}
+        predict = sess.run([self.decoder_predict_decoder], feed_dict=feed_dict)
+        return predict
+
 
 if __name__ == '__main__':
-    model = Seq2SeqModel(args,mode='train',beam_search=False)
+    model = Seq2SeqModel(args, mode='train', beam_search=False)

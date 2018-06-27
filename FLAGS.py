@@ -82,12 +82,6 @@ tf.app.flags.DEFINE_integer(
     'Beam size'
 )
 
-tf.app.flags.DEFINE_float(
-    'keep_prob_dropout',
-    0.9,
-    'dropout'
-)
-
 tf.app.flags.DEFINE_integer(
     'num_layers',
     2,
