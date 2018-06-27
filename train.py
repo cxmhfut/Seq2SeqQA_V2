@@ -6,6 +6,8 @@ from tqdm import tqdm
 import math
 import os
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 def train():
     with tf.Session() as sess:
         model = Seq2SeqModel(flags, mode='train', beam_search=False)
