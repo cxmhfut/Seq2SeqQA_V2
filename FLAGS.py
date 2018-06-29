@@ -42,7 +42,7 @@ tf.app.flags.DEFINE_string(
 
 tf.app.flags.DEFINE_string(
     'endToken',
-    '<end>',
+    '<eos>',
     'end token'
 )
 
@@ -78,7 +78,7 @@ tf.app.flags.DEFINE_integer(
 
 tf.app.flags.DEFINE_integer(
     'beam_size',
-    5,
+    3,
     'Beam size'
 )
 

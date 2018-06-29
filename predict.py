@@ -17,7 +17,7 @@ def predict_ids_seq(predict_ids, id2word, beam_size):
         for i in range(beam_size):
             predict_list = np.ndarray.tolist(single_predict[:, :, i])
             predict_seq = [id2word[idx] for idx in predict_list[0]]
-            print("".join(predict_seq))
+            print(" ".join(predict_seq))
 
 def predict():
     with tf.Session() as sess:

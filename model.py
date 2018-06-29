@@ -99,6 +99,9 @@ class Seq2SeqModel:
             # 创建LSTMCell，两层+dropout
             encoder_cell = self.create_rnn_cell()
             # 构建Embedding矩阵，encoder和decoder共用该词向量矩阵
+            # embedding.shape = (vocab_size, embedding_size)
+            # encoder_inputs.shape = (batch_size, encoder_inputs_length)
+            # encoder_inputs_embedded.shape = (batch_size, encoder_inputs_length, embedding_size)
             embedding = tf.get_variable('embedding', [self.vocab_size, self.embedding_size])
             encoder_inputs_embedded = tf.nn.embedding_lookup(embedding, self.encoder_inputs)
             # 使用dynamic_rnn构建LSTM模型，将输入编码成隐层向量
@@ -157,7 +160,7 @@ class Seq2SeqModel:
                                                         initial_state=decoder_initial_state,
                                                         output_layer=output_layer)
                 # 调用dynamic_decoder进行解码，decoder_outputs的一个named tuple，里面包含两项(rnn_outputs, sample_id)
-                # rnn_output: [batch_size, decoder_targets_length,vocab_size]，保存decoder每个时刻每个单词的概率，可以用来计算loss
+                # rnn_output: [batch_size, decoder_targets_length, vocab_size]，保存decoder每个时刻每个单词的概率，可以用来计算loss
                 # sample_id: [batch_size], tf.int32, 保存最终的编码结果，可以表示最后的答案
                 decoder_outputs, _, _ = seq2seq.dynamic_decode(decoder=training_decoder,
                                                                impute_finished=True,
@@ -257,7 +260,7 @@ class Seq2SeqModel:
         """
         feed_dict = {self.encoder_inputs: batch.encoder_inputs,
                      self.encoder_inputs_length: batch.encoder_inputs_length,
-                     self.keep_prob_dropout:1.0,
+                     self.keep_prob_dropout: 1.0,
                      self.batch_size: len(batch.encoder_inputs)}
         predict = sess.run([self.decoder_predict_decoder], feed_dict=feed_dict)
         return predict
