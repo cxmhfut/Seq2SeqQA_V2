@@ -14,7 +14,7 @@ tf.app.flags.DEFINE_string(
 
 tf.app.flags.DEFINE_string(
     'dataset_filename',
-    'data/dataset-70425-vocabSize33050.pkl',
+    'data/dataset-happy-dataSize-268673-vocabSize-32539.pkl',
     "the path of dataset: word2id = data['word2id], id2word = data['id2word'], trainingSamples = data['trainingSamples']"
 )
 

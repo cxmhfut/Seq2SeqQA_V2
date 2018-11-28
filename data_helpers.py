@@ -49,7 +49,7 @@ def loadDataset(filename):
         data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
         word2id = data['word2id']
         id2word = data['id2word']
-        trainingSamples = data['trainingSamples']
+        trainingSamples = data['training_samples']
     return word2id, id2word, trainingSamples
 
 
@@ -166,6 +166,7 @@ if __name__ == '__main__':
     samples = []
     for i in range(10):
         sample = trainingSamples[i]
+        print(sample[0])
         print(sequence2Str(sample[0], id2word, clean=True))
         print(sequence2Str(sample[1], id2word, clean=True))
         samples.append(sample)
